@@ -149,13 +149,22 @@ fdsStatus_t Fds::init(bool doReset)
     return retval;
 }
 
-void Fds::status(void)
+fdsStatus_t Fds::info(void)
 {
+    fdsStatus_t retval = FDS_OK;
     uint8_t str[(FDS_NUM_RECORDS * 4)+1];
     uint8_t offs = 0;
     uint8_t cnt = 0;
 
-    printf("FDS status:\n");
+    if (!InitDone)
+    {
+        retval = init();
+        if(retval != FDS_OK)
+        {
+            return retval;
+        }
+    }
+
     printf("  First page: %u 0x%08lX\n", 
         FDS_FIRSTFLASHPAGE, (uint32_t)BSP_FLASH_PAGETOADDR(FDS_FIRSTFLASHPAGE));
     printf("  Num pages: %u\n", FDS_NUM_PAGES);
@@ -183,6 +192,8 @@ void Fds::status(void)
     {
         printf(".\n");
     }
+
+    return retval;
 }
 
 fdsStatus_t Fds::write(uint8_t uid, void* pData, size_t numBytes)
@@ -291,8 +302,18 @@ fdsStatus_t Fds::write(uint8_t uid, void* pData, size_t numBytes)
 
 size_t Fds::read(uint8_t uid, void* pData, size_t siz)
 {
+    fdsStatus_t retval = FDS_OK;
     fdsDataHdr_t *pHdr = 0;
     uint8_t *pFlash = 0;
+
+    if (!InitDone)
+    {
+        retval = init();
+        if(retval != FDS_OK)
+        {
+            return 0;
+        }
+    }
 
     if((uid >= FDS_NUM_RECORDS) || (pData == 0) || (siz == 0))
     {
@@ -319,6 +340,15 @@ fdsStatus_t Fds::del(uint8_t uid)
     fdsDataFtr_t ftr;
     uint16_t *pStart = pWrite;
     crc8 crc;
+
+    if (!InitDone)
+    {
+        retval = init();
+        if(retval != FDS_OK)
+        {
+            return retval;
+        }
+    }
 
     if(uid >= FDS_NUM_RECORDS)
     {

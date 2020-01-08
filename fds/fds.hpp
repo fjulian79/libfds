@@ -86,8 +86,13 @@ class Fds
 
         /**
          * @brief Used to print some status infos.
+         * 
+         * @return FDS_ERR      In case of invalid page numbering.
+         *         FDS_EFLASH   In case of a flash related error.
+         *         FDS_ECRC     in case of a invalid CRC.
+         *         FDS_EDATA    in case of invalid data id's in the falsh.
          */
-        void status(void);
+        fdsStatus_t info(void);
 
         /**
          * @brief Used to write data to the flash
@@ -138,8 +143,10 @@ class Fds
          * 
          * @return FDS_OK       In case of success.
          *         FDS_EEINVAL  If the uid is out of range.
+         *         FDS_ERR      In case of invalid page numbering.
          *         FDS_EFLASH   In case of a flash related error.
-         *         FDS_ECRC     In case of a invalid CRC.
+         *         FDS_ECRC     in case of a invalid CRC.
+         *         FDS_EDATA    in case of invalid data id's in the falsh.
          */
         fdsStatus_t del(uint8_t uid);
         
