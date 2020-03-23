@@ -64,7 +64,7 @@ class Fds
          * 
          * @return Fds* The instance.
          */
-        static Fds* getInsance(void);
+        static Fds* getInstance(void);
 
         /**
          * @brief Intializes the library.

@@ -23,7 +23,7 @@
 #include "fds/fds.hpp"
 #include "generic/generic.h"
 #include "generic/crc8.hpp"
-#include "logging/logging.hpp"
+#include "logging/logging.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -67,7 +67,7 @@ Fds::~Fds()
 
 }
 
-Fds* Fds::getInsance(void)
+Fds* Fds::getInstance(void)
 {
     if(pInstance == 0)
     {
