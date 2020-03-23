@@ -22,8 +22,8 @@
 
 #include "fds/fds.hpp"
 #include "generic/generic.h"
-#include "generic/crc.h"
-#include "generic/logging.h"
+#include "generic/crc8.hpp"
+#include "logging/logging.hpp"
 
 #include <string.h>
 #include <stdio.h>
@@ -44,27 +44,14 @@
 #define FDS_PAGEMAGIC                   (0xAA)
 
 /**
- * @brief Defines the magic used in the data header.
+ * @brief Defines the magic used in the header for data records.
  */
 #define FDS_DATAMAGIC                   (0x55)
 
-
-#define FDS_DELMAGIC                    (0x7E)
-
 /**
- * @brief If Debug messages are enabled use the logging macros.
+ * @brief Defines the magic used in the header for removing data.
  */
-#ifdef FDS_DEBUG
-
-#define debug(_fmt)                     logMsg(_fmt)
-#define debug_ext(_fmt, ...)            logMsg_ext(_fmt, __VA_ARGS__)
-
-#else /* FDS_DEBUG */
-
-#define debug(_fmt)
-#define debug_ext(_fmt, ...)
-
-#endif /* FDS_DEBUG */
+#define FDS_DELMAGIC                    (0x7E)
 
 Fds* Fds::pInstance = 0;
 
@@ -124,7 +111,7 @@ fdsStatus_t Fds::init(bool doReset)
 
             if(retval != FDS_OK)
             {
-                logMsg_ext("Error %d while reading the Flash\n", retval);
+                logErr("Error %d while reading the Flash\n", retval);
                 break;
             }
         }
@@ -134,11 +121,12 @@ fdsStatus_t Fds::init(bool doReset)
     {
         if(doReset == true)
         {
+            logInfo("Erasing fds flash.\n");
             retval = format();
         }
         else
         {
-            debug("flash reset supressed.\n");
+            logDebug("Erasing fds flash supressed.\n");
         }
     }
     else
@@ -168,7 +156,7 @@ fdsStatus_t Fds::info(void)
     printf("  First page: %u 0x%08lX\n", 
         FDS_FIRSTFLASHPAGE, (uint32_t)BSP_FLASH_PAGETOADDR(FDS_FIRSTFLASHPAGE));
     printf("  Num pages: %u\n", FDS_NUM_PAGES);
-    printf("  Num records: %u\n", FDS_NUM_RECORDS);
+    printf("  Num supported id's: %u\n", FDS_NUM_RECORDS);
     printf("  pWrite on page %ld @ 0x%08lX\n", 
         BSP_FLASH_ADDRTOPAGE(pWrite) - FDS_FIRSTFLASHPAGE, (uint32_t)pWrite);
     
@@ -256,12 +244,12 @@ fdsStatus_t Fds::write(uint8_t uid, void* pData, size_t numBytes)
         retval = switchPage(uid);
         if(retval != FDS_OK)
         {
-            logMsg_ext("Error %u while switchPage\n", retval);
+            logErr("Error %u while switchPage\n", retval);
             return retval;
         }
     }
 
-    debug_ext("New data starts @ 0x%08lx\n", (uint32_t)pWrite);
+    logDebug("New data starts @ 0x%08lx\n", (uint32_t)pWrite);
 
     do
     {
@@ -270,7 +258,7 @@ fdsStatus_t Fds::write(uint8_t uid, void* pData, size_t numBytes)
     
         if(numBytes > 0)
         {
-            crc.calc(pData, numBytes, crc.get());
+            crc.calc(pData, numBytes);
             retval = writeToFlash(pData, numBytes, false);
             breakIfDiverse(retval, FDS_OK);
         }
@@ -286,11 +274,12 @@ fdsStatus_t Fds::write(uint8_t uid, void* pData, size_t numBytes)
 
     if (retval != FDS_OK)
     {
-        logMsg_ext("Error %u while writing to the flash\n", retval);
+        logErr("Error %u while writing to the flash\n", retval);
         return FDS_EFLASH;
     }
 
-    if (crc.calc(pStart, siz * 2, 0) != 0)
+    crc = 0;
+    if (crc.calc(pStart, siz * 2) != 0)
     {
         return FDS_ECRC;
     }
@@ -374,11 +363,12 @@ fdsStatus_t Fds::del(uint8_t uid)
 
     if (retval != FDS_OK)
     {
-        logMsg_ext("Error %u while writing to the flash\n", retval);
+        logErr("Error %u while writing to the flash\n", retval);
         return retval;
     }
 
-    if (crc.calc(pStart, sizeof(hdr) + sizeof(ftr), 0) != 0)
+    crc = 0;
+    if (crc.calc(pStart, sizeof(hdr) + sizeof(ftr)) != 0)
     {
         return FDS_ECRC;
     }
@@ -445,7 +435,7 @@ fdsStatus_t Fds::writePageHdr(uint16_t page, uint16_t uid)
     retval = writeToFlash(&pageHdr, sizeof(pageHdr));
     if(retval != FDS_OK)
     {
-        logMsg_ext("Error %u while writing PageHdr %u\n", retval, page);
+        logErr("Error %u while writing PageHdr %u\n", retval, page);
     }
 
     return retval;
@@ -462,7 +452,7 @@ fdsStatus_t Fds::readPage(uint16_t page, bool updateWritePointer)
     page += FDS_FIRSTFLASHPAGE;
     pData = (uint8_t*)BSP_FLASH_PAGETOADDR(page) + sizeof(fdsPageHdr_t);
 
-    debug_ext("Reading page %d\n", page);
+    logDebug("Reading page %d\n", page);
 
     while (BSP_FLASH_ADDRTOPAGE(pData) == page)
     {
@@ -480,37 +470,37 @@ fdsStatus_t Fds::readPage(uint16_t page, bool updateWritePointer)
             {
                 if (pHdr->Magic == FDS_DATAMAGIC)
                 {
-                    debug_ext("Uid %d Data @ 0x%08lx\n", pHdr->Uid, 
+                    logDebug("Uid %d Data @ 0x%08lx\n", pHdr->Uid, 
                         (uint32_t)pData);
                     pRecords[pHdr->Uid] = pData;
                 }
                 else if(pHdr->Magic == FDS_DELMAGIC)
                 {
-                    debug_ext("Uid %d RM @ 0x%08lx\n", pHdr->Uid, 
+                    logDebug("Uid %d RM @ 0x%08lx\n", pHdr->Uid, 
                         (uint32_t)pData);
                     pRecords[pHdr->Uid] = 0;
                 }
                 else
                 {
-                    logMsg_ext("Invalid Header Magic @ 0x%08lx\n", 
+                    logErr("Invalid Header Magic @ 0x%08lx\n", 
                         (uint32_t)pData);
                 }
             }
             else
             {
-                debug_ext("Invalid crc @ 0x%08lx (%u, 0x%x)\n", 
-                    (uint32_t)pData, siz, crc.get());
+                logDebug("Invalid crc @ 0x%08lx (%u, 0x%x)\n", 
+                    (uint32_t)pData, siz, (uint8_t)crc);
                 retval = FDS_ECRC;
                 break;
             }
         }
         else if (pHdr->Raw == 0xFFFFFFFF)
         {
-            debug_ext("EOP @ 0x%08lx.\n", (uint32_t)pData);
+            logDebug("EOP @ 0x%08lx.\n", (uint32_t)pData);
             if(updateWritePointer)
             {
                 pWrite = (uint16_t*)pData;
-                debug("pWrite updated\n");
+                logDebug("pWrite updated\n");
             }
             break;
         }
@@ -626,7 +616,7 @@ fdsStatus_t Fds::writeToFlash(void * pData, size_t siz, bool checkCrc)
 
         if (bspStatus != BSP_OK)
         {
-            logMsg_ext("Error %u while writing to flash @ 0x%08lx, %u\n",
+            logErr("Error %u while writing to flash @ 0x%08lx, %u\n",
                 bspStatus, (uint32_t)pWrite, siz);
             retval = FDS_EFLASH;
             break;    

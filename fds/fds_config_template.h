@@ -56,9 +56,10 @@ extern "C" {
 #define FDS_MAX_DATABYTES               256
 
 /**
- * @brief If FDS_DEBUG is defined debug log messages will be enabled.
+ * @brief The log level to use in libfds. Currently there are no warnings, only
+ * error, info and debug log messages.
  */
-//#define FDS_DEBUG
+#define LOGLEVEL                        3
 
 #ifdef __cplusplus
 }
