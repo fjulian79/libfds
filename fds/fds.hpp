@@ -23,7 +23,7 @@
 #ifndef FDS_HPP_
 #define FDS_HPP_
 
-#include "fds_config.h"
+#include "fds_config.hpp"
 #include <bsp/bsp_flash.h>
 #include <stdint.h>
 

@@ -22,8 +22,8 @@
 
 #include <bsp/bsp_flash.h>
 
-#ifndef FDS_CONFIG_H_
-#define FDS_CONFIG_H_
+#ifndef FDS_CONFIG_HPP_
+#define FDS_CONFIG_HPP_
 
 #ifdef __cplusplus
 extern "C" {
@@ -65,4 +65,4 @@ extern "C" {
 }
 #endif
 
-#endif /* FDS_CONFIG_H_ */
+#endif /* FDS_CONFIG_HPP_ */

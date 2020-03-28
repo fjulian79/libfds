@@ -21,7 +21,7 @@
  */
 
 #include "fds/fds.hpp"
-#include "generic/generic.h"
+#include "generic/generic.hpp"
 #include "generic/crc8.hpp"
 #include "logging/logging.h"
 
