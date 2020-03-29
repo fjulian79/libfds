@@ -1,0 +1,17 @@
+{
+    "name": "libfds",
+    "version": "1.0.0",
+    "keywords": "stm32, flash, parameters",
+    "description": "A library used to store application data like parameters in the Stm32 on chip flash memory.",
+    "repository":
+    {
+      "type": "git",
+      "url": "https://github.com/fjulian79/libfds.git"
+    },
+    "frameworks": "*",
+    "platforms": "ststm32",
+    "dependencies": 
+    {
+      "libgeneric": "https://github.com/fjulian79/liblogging.git#master"
+    }
+}
